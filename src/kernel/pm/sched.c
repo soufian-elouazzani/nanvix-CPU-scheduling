@@ -34,12 +34,6 @@ PUBLIC void sched(struct process *proc)
 	proc->state = PROC_READY;
 	proc->counter = 0;
 
-	if (proc->burst_time == 0)
-	{
-    		proc->burst_time = 5 + (proc->pid % 10); // valeur simulée
-    		proc->remaining_time = proc->burst_time;
-	}
-
 }
 
 /**
@@ -97,23 +91,25 @@ PUBLIC void yield(void)
 
 	for (p = FIRST_PROC; p <= LAST_PROC; p++)
 	{
+	/* Skip invalid processes */
+	if (!IS_VALID(p))
+		continue;
+
+	/* Skip non-ready processes */
 	if (p->state != PROC_READY)
 		continue;
 
-	if (next == IDLE || p->remaining_time < next->remaining_time)
-		{
-			next = p;
-		}
+	/*
+	 * Select process with smallest counter
+	 * (interpreted as shortest job)
+	 */
+	if ((next == IDLE) || (p->counter < next->counter))
+		next = p;
 	}
+
 
 	
 	/* Switch to next process. */
-	if (next != IDLE)
-	{
-    		if (next->remaining_time > 0)
-        	next->remaining_time--;
-	}
-
 	next->priority = PRIO_USER;
 	next->state = PROC_RUNNING;
 	next->counter = PROC_QUANTUM;
