@@ -1,0 +1,23 @@
+# Binaries and Images
+bin/
+lib/
+obj/
+*.o
+*.bin
+*.img
+*.iso
+hdd.img
+initrd.img
+nanvix.iso
+nanvix-iso/
+
+# Toolchain and Builds
+toolchain/
+build-*/
+build-binutils/
+build-gdb/
+
+# Logs and Temps
+bochsout.txt
+*.log
+*~
