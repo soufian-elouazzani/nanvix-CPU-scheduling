@@ -32,7 +32,7 @@
 PUBLIC void sched(struct process *proc)
 {
 	proc->state = PROC_READY;
-	proc->counter = 0;
+
 }
 
 /**
@@ -88,29 +88,23 @@ PUBLIC void yield(void)
 
 	/* Choose a process to run next. */
 	next = IDLE;
+
 	for (p = FIRST_PROC; p <= LAST_PROC; p++)
 	{
-		/* Skip non-ready process. */
-		if (p->state != PROC_READY)
-			continue;
+	if (!IS_VALID(p))
+		continue;
 
-		/*
-		 * Process with higher
-		 * waiting time found.
-		 */
-		if (p->counter > next->counter)
-		{
-			next->counter++;
-			next = p;
-		}
+	if (p->state != PROC_READY)
+		continue;
 
-		/*
-		 * Increment waiting
-		 * time of process.
-		 */
-		else
-			p->counter++;
+	/*
+	 * Select process with HIGHEST priority.
+	 * In Nanvix, smaller value = higher priority.
+	 */
+	if ((next == IDLE) || (p->priority < next->priority))
+		next = p;
 	}
+
 
 	/* Switch to next process. */
 	next->priority = PRIO_USER;
