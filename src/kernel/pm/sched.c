@@ -32,7 +32,6 @@
 PUBLIC void sched(struct process *proc)
 {
 	proc->state = PROC_READY;
-	proc->counter = 0;
 
 }
 
@@ -91,21 +90,20 @@ PUBLIC void yield(void)
 
 	for (p = FIRST_PROC; p <= LAST_PROC; p++)
 	{
-	/* Skip invalid processes */
-	if (!IS_VALID(p))
-		continue;
+		if (!IS_VALID(p))
+			continue;
 
-	/* Skip non-ready processes */
 	if (p->state != PROC_READY)
 		continue;
 
-	/*
-	 * Select process with smallest counter
-	 * (interpreted as shortest job)
-	 */
+	/* Aging: increase waiting time */
+	p->counter++;
+
+	/* Select process with SMALLEST waiting time */
 	if ((next == IDLE) || (p->counter < next->counter))
 		next = p;
 	}
+
 
 
 	
