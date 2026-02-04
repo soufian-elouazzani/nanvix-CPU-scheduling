@@ -205,6 +205,9 @@
 		struct process *next;    /**< Next process in a list. */
 		struct process **chain;  /**< Sleeping chain.         */
 		/**@}*/
+	int burst_time;       /* Estimated CPU burst time */
+	int remaining_time;   /* Remaining execution time */
+
 	};
 
 	/* Forward definitions. */
