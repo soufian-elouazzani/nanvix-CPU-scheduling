@@ -33,6 +33,13 @@ PUBLIC void sched(struct process *proc)
 {
 	proc->state = PROC_READY;
 	proc->counter = 0;
+
+	if (proc->burst_time == 0)
+	{
+    		proc->burst_time = 5 + (proc->pid % 10); // valeur simulée
+    		proc->remaining_time = proc->burst_time;
+	}
+
 }
 
 /**
@@ -86,33 +93,27 @@ PUBLIC void yield(void)
 			p->alarm = 0, sndsig(p, SIGALRM);
 	}
 
-	/* Choose a process to run next. */
 	next = IDLE;
+
 	for (p = FIRST_PROC; p <= LAST_PROC; p++)
 	{
-		/* Skip non-ready process. */
-		if (p->state != PROC_READY)
-			continue;
+	if (p->state != PROC_READY)
+		continue;
 
-		/*
-		 * Process with higher
-		 * waiting time found.
-		 */
-		if (p->counter > next->counter)
+	if (next == IDLE || p->remaining_time < next->remaining_time)
 		{
-			next->counter++;
 			next = p;
 		}
-
-		/*
-		 * Increment waiting
-		 * time of process.
-		 */
-		else
-			p->counter++;
 	}
 
+	
 	/* Switch to next process. */
+	if (next != IDLE)
+	{
+    		if (next->remaining_time > 0)
+        	next->remaining_time--;
+	}
+
 	next->priority = PRIO_USER;
 	next->state = PROC_RUNNING;
 	next->counter = PROC_QUANTUM;
