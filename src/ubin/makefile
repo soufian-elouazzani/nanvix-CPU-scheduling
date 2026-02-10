@@ -144,7 +144,6 @@ nim:
 sleep: 
 	$(CC) $(CFLAGS) $(LDFLAGS) -D TESTE sleep/*.c -o $(UBINDIR)/sleep $(LIBDIR)/libc.a
 
-
 # Clean compilation files.
 clean:
 	@rm -f $(UBINDIR)/cat
