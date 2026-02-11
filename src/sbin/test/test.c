@@ -586,6 +586,78 @@ int fpu_test(void)
 	return (result == 0x40b2aaaa);
 }
 
+/**
+ * @brief Test de logique MLFQ : Préemption par priorité.
+ */
+static int sched_test_mlfq(void)
+{
+    pid_t salma_pid, soufiane_pid;
+    
+    printf("\n[MLFQ TEST] Demarrage du test Soufiane vs Salma...\n");
+
+    /* 1. Lancement de SALMA (Le processus qui va devenir lent) */
+    salma_pid = fork();
+    
+    if (salma_pid == 0)
+    {
+        int p = getpid();
+        
+        /* Phase 1 : Salma brûle du CPU pour descendre en priorité (Niveau 7) */
+        /* On augmente la boucle pour être SUR qu'elle descende tout en bas */
+        for (volatile int i = 0; i < 50000000; i++) {
+            if (i % 5000000 == 0) {
+                 /* Rien, juste pour éviter l'optimisation du compilateur */
+            }
+        }
+        
+        printf("   [Salma:%d] Je suis toujours en vie (Basse Priorite)...\n", p);
+        
+        /* Phase 2 : Salma continue de travailler. 
+         * Si le MLFQ marche, elle doit se faire INTERROMPRE par Soufiane ici.
+         * On met une boucle TRÈS longue pour qu'elle ne finisse pas par chance.
+         */
+        for (volatile int i = 0; i < 200000000; i++) {
+             /* Travail long... */
+        }
+        
+        printf("   [Salma:%d] J'ai enfin fini.\n", p);
+        _exit(EXIT_SUCCESS);
+    }
+
+    /* 2. Le Parent attend pour laisser Salma couler au fond du MLFQ */
+    /* Une simple boucle d'attente suffit ici */
+    for (volatile int i = 0; i < 30000000; i++);
+
+    printf("[MLFQ TEST] Lancement de Soufiane (Priorite Haute)...\n");
+
+    /* 3. Lancement de SOUFIANE */
+    soufiane_pid = fork();
+
+    if (soufiane_pid == 0)
+    {
+        int p = getpid();
+        
+        /* Soufiane arrive frais (Niveau 0). 
+         * Il doit passer TOUT DE SUITE devant Salma qui est au Niveau 7. */
+        printf("      >>> [Soufiane:%d] Je suis rapide ! Je passe devant !\n", p);
+        
+        /* Petit travail pour montrer qu'il s'exécute */
+        for (volatile int i = 0; i < 1000000; i++);
+        
+        printf("      >>> [Soufiane:%d] Fini.\n", p);
+        _exit(EXIT_SUCCESS);
+    }
+
+    /* 4. Le parent attend la fin des enfants */
+    /* Le premier wait() ramassera celui qui finit le premier.
+     * Si MLFQ marche, ce DOIT être Soufiane. */
+    wait(NULL); 
+    wait(NULL); 
+
+    printf("[MLFQ TEST] Fin du test.\n");
+    return (0);
+}
+
 /*============================================================================*
  *                                   main                                     *
  *============================================================================*/
@@ -608,6 +680,7 @@ static void usage(void)
 
 	exit(EXIT_SUCCESS);
 }
+
 
 /**
  * @brief System testing utility.
@@ -647,6 +720,12 @@ int main(int argc, char **argv)
 			printf("  scheduler stress   [%s]\n",
 				(!sched_test2() && !sched_test3()) ? "PASSED" : "FAILED");
 		}
+                /* Multiple Qeue Visual test. */
+                else if (!strcmp(argv[i], "mq"))
+                {
+                        sched_test_mlfq();
+                }
+                /* ------------------------- */
 
 		/* IPC test. */
 		else if (!strcmp(argv[i], "ipc"))
