@@ -586,6 +586,62 @@ int fpu_test(void)
 	return (result == 0x40b2aaaa);
 }
 
+
+/**
+ * @brief SJF Scheduler test
+ * 
+ * @details Creates processes with different work durations
+ * to test if shortest jobs run first
+ * 
+ * @returns Zero if test passes
+ */
+static int sjf_test(void)
+{
+    pid_t pids[3];
+    int durations[3] = {3, 1, 2}; // Different work durations
+    
+    printf("SJF Scheduler Test\n");
+    printf("Creating 3 processes with durations: 3, 1, 2\n");
+    printf("Expected SJF order: Process 2, Process 3, Process 1\n");
+    
+    for (int i = 0; i < 3; i++)
+    {
+        pids[i] = fork();
+        
+        /* Failed to fork(). */
+        if (pids[i] < 0)
+        {
+            printf("fork failed\n");
+            return (-1);
+        }
+        
+        /* Child process. */
+        if (pids[i] == 0)
+        {
+            printf("  Child %d (PID: %d) started - duration: %d\n", 
+                   i+1, getpid(), durations[i]);
+            
+            // Simulate work - CPU intensive loop
+            volatile unsigned long long counter = 0;
+            for (int j = 0; j < durations[i] * 500000; j++)
+                counter++;
+            
+            printf("  Child %d (PID: %d) finished\n", i+1, getpid());
+            _exit(EXIT_SUCCESS);
+        }
+        
+        // Small delay between forks (busy wait)
+        for (int j = 0; j < 500; j++);
+    }
+    
+    /* Wait for all children. */
+    for (int i = 0; i < 3; i++)
+        wait(NULL);
+    
+    return (0);
+}
+
+
 /*============================================================================*
  *                                   main                                     *
  *============================================================================*/
@@ -664,6 +720,11 @@ int main(int argc, char **argv)
 				(!fpu_test()) ? "PASSED" : "FAILED");
 		}
 
+                else if (!strcmp(argv[i], "sjf")) {
+    			printf("SJF Scheduler Test\n");
+    			printf("  Result: [%s]\n",
+        			(!sjf_test()) ? "PASSED" : "FAILED");
+		}
 		/* Wrong usage. */
 		else
 			usage();

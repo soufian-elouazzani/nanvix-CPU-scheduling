@@ -59,58 +59,66 @@ PUBLIC void resume(struct process *proc)
 		sched(proc);
 }
 
+
 /**
  * @brief Yields the processor.
  */
 PUBLIC void yield(void)
 {
-	struct process *p;    /* Working process.     */
-	struct process *next; /* Next process to run. */
-
-	/* Re-schedule process for execution. */
-	if (curr_proc->state == PROC_RUNNING)
-		sched(curr_proc);
-
-	/* Remember this process. */
-	last_proc = curr_proc;
-
-	/* Check alarm. */
-	for (p = FIRST_PROC; p <= LAST_PROC; p++)
-	{
-		/* Skip invalid processes. */
-		if (!IS_VALID(p))
-			continue;
-
-		/* Alarm has expired. */
-		if ((p->alarm) && (p->alarm < ticks))
-			p->alarm = 0, sndsig(p, SIGALRM);
-	}
-
-	next = IDLE;
-
-	for (p = FIRST_PROC; p <= LAST_PROC; p++)
-	{
-		if (!IS_VALID(p))
-			continue;
-
-	if (p->state != PROC_READY)
-		continue;
-
-	/* Aging: increase waiting time */
-	p->counter++;
-
-	/* Select process with SMALLEST waiting time */
-	if ((next == IDLE) || (p->counter < next->counter))
-		next = p;
-	}
+    struct process *p;    /* Working process.     */
+    struct process *next; /* Next process to run. */
 
 
+    if (curr_proc->state == PROC_RUNNING)
+        sched(curr_proc);
 
-	
-	/* Switch to next process. */
-	next->priority = PRIO_USER;
-	next->state = PROC_RUNNING;
-	next->counter = PROC_QUANTUM;
-	if (curr_proc != next)
-		switch_to(next);
+    
+    last_proc = curr_proc;
+
+    
+    for (p = FIRST_PROC; p <= LAST_PROC; p++)
+    {
+        
+        if (!IS_VALID(p))
+            continue;
+
+        
+        if ((p->alarm) && (p->alarm < ticks))
+            p->alarm = 0, sndsig(p, SIGALRM);
+    }
+
+    
+    next = IDLE;
+
+    /* Shortest Job First (SJF) scheduling */
+    for (p = FIRST_PROC; p <= LAST_PROC; p++)
+    {
+        if (!IS_VALID(p))
+            continue;
+
+        if (p->state != PROC_READY)
+            continue;
+
+        p->counter++;
+
+        /*
+         * SJF Core: Select the process with the smallest
+         * counter value. The counter represents:
+         * 1. Initial estimate of burst time (set when process starts)
+         * 2. Accumulated waiting time (aging)
+         */
+        if ((next == IDLE) || (p->counter < next->counter))
+            next = p;
+    }
+
+    if (!IS_VALID(next))
+        next = IDLE;
+
+    next->priority = PRIO_USER;
+    next->state = PROC_RUNNING;
+    next->counter = PROC_QUANTUM;
+    
+    /* Only switch if it's a different process */
+    if (curr_proc != next)
+        switch_to(next);
 }
