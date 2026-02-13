@@ -586,6 +586,44 @@ int fpu_test(void)
 	return (result == 0x40b2aaaa);
 }
 
+
+/**
+ * @brief Test de l'ordonnanceur à priorités
+ */
+static int priority_test(void)
+{
+    pid_t pids[4];
+    
+    printf("Test Ordonnanceur à Priorités\n");
+    
+    for (int i = 0; i < 4; i++)
+    {
+        pids[i] = fork();
+        
+        if (pids[i] < 0)
+        {
+            printf("  Résultat:           [ÉCHEC]\n");
+            return (-1);
+        }
+        
+        if (pids[i] == 0)
+        {
+            volatile unsigned long long compteur = 0;
+            for (int j = 0; j < 1000000; j++)
+                compteur++;
+            _exit(EXIT_SUCCESS);
+        }
+    }
+    
+    for (int i = 0; i < 4; i++)
+        wait(NULL);
+    
+    printf("  Résultat:           [RÉUSSI]\n");
+    
+    return (0);
+}
+
+
 /*============================================================================*
  *                                   main                                     *
  *============================================================================*/
@@ -662,6 +700,11 @@ int main(int argc, char **argv)
 			printf("Float Point Unit Test\n");
 			printf("  Result [%s]\n",
 				(!fpu_test()) ? "PASSED" : "FAILED");
+		}
+
+		else if (!strcmp(argv[i], "priority"))
+		{
+    			priority_test();  
 		}
 
 		/* Wrong usage. */

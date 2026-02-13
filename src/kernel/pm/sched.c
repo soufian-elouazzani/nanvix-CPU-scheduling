@@ -60,56 +60,62 @@ PUBLIC void resume(struct process *proc)
 }
 
 /**
- * @brief Yields the processor.
+ * @brief Ordonnanceur à priorités fixes.
+ * 
+ * @details Sélectionne le processus prêt avec la priorité la plus élevée.
+ *          Dans Nanvix, une valeur de priorité plus petite = priorité plus haute.
  */
 PUBLIC void yield(void)
 {
-	struct process *p;    /* Working process.     */
-	struct process *next; /* Next process to run. */
+	struct process *p;
+	struct process *next;
 
-	/* Re-schedule process for execution. */
+	/* Remet le processus courant dans la file prête */
 	if (curr_proc->state == PROC_RUNNING)
 		sched(curr_proc);
 
-	/* Remember this process. */
+	/* Sauvegarde pour débogage */
 	last_proc = curr_proc;
 
-	/* Check alarm. */
+	/* Vérification des alarmes */
 	for (p = FIRST_PROC; p <= LAST_PROC; p++)
 	{
-		/* Skip invalid processes. */
 		if (!IS_VALID(p))
 			continue;
 
-		/* Alarm has expired. */
 		if ((p->alarm) && (p->alarm < ticks))
 			p->alarm = 0, sndsig(p, SIGALRM);
 	}
 
-	/* Choose a process to run next. */
-	next = IDLE;
+	/*
+	 * ORDONNANCEMENT PAR PRIORITÉS FIXES
+	 * Principe : élire le processus prêt avec la plus petite valeur de priorité
+	 */
+	next = IDLE;  /* Processus par défaut */
 
 	for (p = FIRST_PROC; p <= LAST_PROC; p++)
 	{
-	if (!IS_VALID(p))
-		continue;
+		if (!IS_VALID(p))
+			continue;
 
-	if (p->state != PROC_READY)
-		continue;
+		if (p->state != PROC_READY)
+			continue;
 
-	/*
-	 * Select process with HIGHEST priority.
-	 * In Nanvix, smaller value = higher priority.
-	 */
-	if ((next == IDLE) || (p->priority < next->priority))
-		next = p;
+		/* Sélection du processus avec la priorité la plus élevée */
+		if ((next == IDLE) || (p->priority < next->priority))
+			next = p;
 	}
 
+	/* Vérification de sécurité */
+	if (!IS_VALID(next))
+		next = IDLE;
 
-	/* Switch to next process. */
-	next->priority = PRIO_USER;
+	/* Prépare le processus élu */
+	next->priority = PRIO_USER;  /* Réinitialise la priorité */
 	next->state = PROC_RUNNING;
-	next->counter = PROC_QUANTUM;
+	next->counter = PROC_QUANTUM;  /* Nouveau quantum */
+
+	/* Changement de contexte si nécessaire */
 	if (curr_proc != next)
 		switch_to(next);
 }
